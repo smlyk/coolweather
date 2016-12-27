@@ -31,4 +31,5 @@ dependencies {
     compile 'org.litepal.android:core:1.4.1'
     compile 'com.facebook.fresco:fresco:0.14.1'
     compile 'com.facebook.fresco:animated-gif:0.14.1'
+    compile 'com.github.franmontiel:PersistentCookieJar:v0.9.3'
 }
