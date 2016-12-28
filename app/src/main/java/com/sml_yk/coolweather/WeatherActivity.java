@@ -7,9 +7,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -41,13 +45,16 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView carWashText;
     private TextView sportText;
     private SimpleDraweeView bingPicImg;
+    public SwipeRefreshLayout swipeRefresh;
+    public DrawerLayout drawerLayout;
+    private ImageView navButton;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (Build.VERSION.SDK_INT>=21){
+        if (Build.VERSION.SDK_INT >= 21) {
             View decorView = getWindow().getDecorView();
-            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             getWindow().setStatusBarColor(Color.TRANSPARENT);
         }
         setContentView(R.layout.activity_weather);
@@ -67,6 +74,8 @@ public class WeatherActivity extends AppCompatActivity {
         comfortText = (TextView) findViewById(R.id.comfort_text);
         carWashText = (TextView) findViewById(R.id.car_wash_text);
         sportText = (TextView) findViewById(R.id.sport_text);
+        swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather", null);
@@ -81,14 +90,39 @@ public class WeatherActivity extends AppCompatActivity {
             requestWeather(weatherId);
         }
 
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this);
+                String weatherString = prefs.getString("weather", null);
+                String weatherId;
+                if (weatherString != null) {
+                    Weather weather = Utility.handleWeatherResponse(weatherString);
+                    weatherId = weather.basic.weatherId;
+                } else {
+                    weatherId = getIntent().getStringExtra("weather_id");
+                }
+                requestWeather(weatherId);
+            }
+        });
+
         bingPicImg = (SimpleDraweeView) findViewById(R.id.bing_pic_img);
-        String bingPic = prefs.getString("bing_pic",null);
-        if (bingPic!=null){
+        String bingPic = prefs.getString("bing_pic", null);
+        if (bingPic != null) {
             Uri imgUri = Uri.parse(bingPic);
             bingPicImg.setImageURI(imgUri);
-        }else {
+        } else {
             loadBingPic();
         }
+
+        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        navButton = (ImageView) findViewById(R.id.nav_button);
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
     }
 
     /**
@@ -104,9 +138,9 @@ public class WeatherActivity extends AppCompatActivity {
 
             @Override
             public void onResponse(String response, int id) {
-                    SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-                    editor.putString("bing_pic",response);
-                    editor.apply();
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("bing_pic", response);
+                editor.apply();
                 Uri imgUri = Uri.parse(response);
                 bingPicImg.setImageURI(imgUri);
             }
@@ -119,12 +153,13 @@ public class WeatherActivity extends AppCompatActivity {
      *
      * @param weatherId
      */
-    private void requestWeather(String weatherId) {
+    public void requestWeather(String weatherId) {
         String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=12430de93bbb40b897482741b26660d4";
         OkHttpUtils.get().url(weatherUrl).build().execute(new StringCallback() {
             @Override
             public void onError(Call call, Exception e, int id) {
                 Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                swipeRefresh.setRefreshing(false);
             }
 
             @Override
@@ -138,6 +173,7 @@ public class WeatherActivity extends AppCompatActivity {
                 } else {
                     Toast.makeText(WeatherActivity.this, "获取天气信息失败！", Toast.LENGTH_SHORT).show();
                 }
+                swipeRefresh.setRefreshing(false);
             }
         });
         loadBingPic();
