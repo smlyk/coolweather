@@ -1,5 +1,6 @@
 package com.sml_yk.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.facebook.drawee.view.SimpleDraweeView;
 import com.sml_yk.coolweather.gson.Forecast;
 import com.sml_yk.coolweather.gson.Weather;
+import com.sml_yk.coolweather.service.AutoUpdateService;
 import com.sml_yk.coolweather.util.Utility;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.StringCallback;
@@ -218,5 +220,8 @@ public class WeatherActivity extends AppCompatActivity {
         carWashText.setText(carWash);
         sportText.setText(sport);
         weatherLayout.setVisibility(View.VISIBLE);
+
+        Intent intent = new Intent(this, AutoUpdateService.class);
+        startService(intent);
     }
 }
